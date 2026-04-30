@@ -1,0 +1,34 @@
+stages:
+  - build
+  - test
+  - package
+  - deploy
+
+variables:
+  APP_NAME: my-app
+
+build-job:
+  stage: build
+  script:
+    - echo "Building $APP_NAME"
+    - mvn clean compile
+
+test-job:
+  stage: test
+  script:
+    - echo "Running tests"
+    - mvn test
+
+package-job:
+  stage: package
+  script:
+    - echo "Packaging app"
+    - mvn package
+  artifacts:
+    paths:
+      - target/*.jar
+
+deploy-job:
+  stage: deploy
+  script:
+    - echo "Deploying application"
