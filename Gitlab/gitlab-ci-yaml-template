@@ -606,3 +606,267 @@ Strong phrase:
 ---
 
 If you'd like, I can also give you a **gold-standard GitLab CI/CD pipeline design from SRE perspective** (monitoring, rollback, canary, approvals, metrics).
+
+
+
+
+Reusable templates in GitLab CI/CD mean writing common job definitions once and reusing them across many jobs/projects. This reduces duplication and standardizes pipelines.
+
+There are several common ways:
+
+1. Hidden jobs + `extends`
+2. YAML anchors
+3. Shared included templates
+4. Component templates for org-wide standards
+
+---
+
+# 1. Hidden Job + `extends` (Most Common)
+
+A hidden job starts with `.` and acts as a template.
+
+```yaml id="8thnq5"
+stages:
+  - build
+
+.build_template:
+  image: maven:3.9-eclipse-temurin-17
+  stage: build
+  script:
+    - mvn clean package
+
+service-a-build:
+  extends: .build_template
+
+service-b-build:
+  extends: .build_template
+```
+
+## Meaning
+
+Both jobs reuse:
+
+* same image
+* same stage
+* same build commands
+
+Only job names differ.
+
+---
+
+# Real Use Case
+
+20 Java microservices all use same build template.
+
+One Maven version update changes all services.
+
+---
+
+# 2. Template + Override Some Values
+
+```yaml id="x11v5k"
+.test_template:
+  stage: test
+  script:
+    - npm test
+
+frontend-test:
+  extends: .test_template
+  image: node:20
+
+backend-test:
+  extends: .test_template
+  image: node:18
+```
+
+## Meaning
+
+Same test logic, different runtime versions.
+
+---
+
+# 3. Reusable Deploy Template
+
+```yaml id="0a9r7j"
+.deploy_template:
+  stage: deploy
+  script:
+    - ./deploy.sh
+
+deploy-dev:
+  extends: .deploy_template
+  environment: dev
+
+deploy-prod:
+  extends: .deploy_template
+  environment: production
+  when: manual
+```
+
+## Meaning
+
+Same deployment logic, different environments.
+
+---
+
+# 4. YAML Anchors (Native YAML Reuse)
+
+```yaml id="8cr2do"
+.default_job: &default_job
+  image: alpine:latest
+  before_script:
+    - echo "Starting job"
+
+job1:
+  <<: *default_job
+  script:
+    - echo "Build"
+
+job2:
+  <<: *default_job
+  script:
+    - echo "Test"
+```
+
+## Meaning
+
+Reusable block copied into jobs.
+
+---
+
+# 5. Shared Template from Another File
+
+```yaml id="8v0u93"
+include:
+  - local: ci/build-template.yml
+```
+
+Then in `ci/build-template.yml`
+
+```yaml id="lj7lzc"
+.build_template:
+  script:
+    - mvn clean package
+```
+
+Use in main file:
+
+```yaml id="0s4q5p"
+build:
+  extends: .build_template
+```
+
+---
+
+# 6. Organization-wide Central Template Repo
+
+```yaml id="7yo6i5"
+include:
+  - project: devops/shared-ci
+    file: java-template.yml
+```
+
+## Meaning
+
+All teams reuse central standards:
+
+* build jobs
+* scans
+* deploy patterns
+* notifications
+
+Very common in enterprises.
+
+---
+
+# Real SRE Examples of Reusable Templates
+
+## Security Scan Template
+
+```yaml id="r4w6ei"
+.sast_template:
+  stage: security
+  script:
+    - run-sast.sh
+```
+
+Use in all repos.
+
+---
+
+## Docker Build Template
+
+```yaml id="aw2q7o"
+.docker_build:
+  script:
+    - docker build -t $CI_COMMIT_SHA .
+```
+
+---
+
+## Rollback Template
+
+```yaml id="jlwmcu"
+.rollback_template:
+  script:
+    - kubectl rollout undo deployment/$APP
+```
+
+---
+
+# Why Reusable Templates Matter
+
+Without templates:
+
+```text id="v4n9af"
+100 repos x copied YAML x drift x maintenance pain
+```
+
+With templates:
+
+```text id="cv0r9v"
+1 template -> many repos -> consistent pipelines
+```
+
+---
+
+# Interview Answer
+
+“Reusable templates in GitLab CI are commonly implemented using hidden jobs with `extends`, YAML anchors, or shared includes. They allow teams to standardize build, test, scan, and deploy logic across multiple services while reducing duplication and operational drift.”
+
+---
+
+# Best Practice for Large Companies
+
+Create shared templates for:
+
+* Java build
+* Node build
+* Security scans
+* Docker publish
+* Kubernetes deploy
+* Rollback
+* Notifications
+
+---
+
+# Advanced Example (Microservices)
+
+```yaml id="6a6rzj"
+include:
+  - project: platform/ci-templates
+    file: microservice-template.yml
+```
+
+Every new service gets production-grade CI instantly.
+
+---
+
+# SRE Perspective
+
+Templates = reliability automation.
+
+---
+
+If you'd like, I can also give you a **production-grade GitLab reusable template library for 50+ microservices** (what real enterprises do).
+
