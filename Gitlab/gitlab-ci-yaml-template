@@ -32,3 +32,577 @@ deploy-job:
   stage: deploy
   script:
     - echo "Deploying application"
+
+
+########################
+
+In GitLab, the **template of a CI/CD pipeline** usually means the standard structure of the `.gitlab-ci.yml` file that defines how code is built, tested, packaged, and deployed.
+
+There is **no single mandatory template**, but most pipelines follow a common pattern.
+
+---
+
+# Basic GitLab CI/CD Pipeline Template
+
+```yaml id="k0m0ol"
+stages:
+  - build
+  - test
+  - package
+  - deploy
+
+variables:
+  APP_NAME: my-app
+
+build-job:
+  stage: build
+  script:
+    - echo "Building $APP_NAME"
+    - mvn clean compile
+
+test-job:
+  stage: test
+  script:
+    - echo "Running tests"
+    - mvn test
+
+package-job:
+  stage: package
+  script:
+    - echo "Packaging app"
+    - mvn package
+  artifacts:
+    paths:
+      - target/*.jar
+
+deploy-job:
+  stage: deploy
+  script:
+    - echo "Deploying application"
+```
+
+---
+
+# Main Sections of a GitLab CI Template
+
+## 1. `stages:`
+
+Defines execution order.
+
+```yaml id="8lxzkx"
+stages:
+  - build
+  - test
+  - deploy
+```
+
+---
+
+## 2. Jobs
+
+Each job contains:
+
+* stage
+* script
+* rules / only / except
+* artifacts
+* tags
+* image
+
+Example:
+
+```yaml id="a2t2yc"
+unit-test:
+  stage: test
+  script:
+    - npm test
+```
+“In GitLab CI, image defines the runtime container, tags select the appropriate runner, and rules control pipeline logic such as branch-based, MR-based, or manual execution. Together they determine where, how, and when jobs run.”
+---
+
+## 3. `script:`
+
+Commands executed by runner.
+
+```yaml id="wl7f7m"
+script:
+  - mvn clean install
+```
+
+---
+
+## 4. `artifacts:`
+
+Stores outputs.
+
+```yaml id="c7u8vl"
+artifacts:
+  paths:
+    - target/app.jar
+```
+
+---
+
+## 5. `rules:` (Modern Conditional Logic)
+
+```yaml id="f43a03"
+rules:
+  - if: '$CI_COMMIT_BRANCH == "main"'
+```
+
+---
+
+## 6. `variables:`
+
+Reusable environment values.
+
+```yaml id="idn17c"
+variables:
+  ENV: prod
+```
+
+---
+
+# Real Enterprise Pipeline Template
+
+```yaml id="r7p43u"
+stages:
+  - lint
+  - build
+  - test
+  - security
+  - package
+  - deploy_staging
+  - smoke_test
+  - deploy_prod
+```
+
+---
+
+# Java Spring Boot Example
+
+```yaml id="jv7gq2"
+image: maven:3.9-eclipse-temurin-17
+
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  stage: build
+  script:
+    - mvn clean package
+  artifacts:
+    paths:
+      - target/*.jar
+
+test:
+  stage: test
+  script:
+    - mvn test
+
+deploy:
+  stage: deploy
+  script:
+    - java -jar target/app.jar
+```
+
+---
+
+# Reusable Templates in GitLab
+
+GitLab also supports **includes**:
+
+```yaml id="1s5f47"
+include:
+  - template: Security/SAST.gitlab-ci.yml
+```
+
+This imports official GitLab templates for:
+
+* SAST
+* Dependency scanning
+* Container scanning
+* Auto DevOps
+
+So “template” can also mean reusable predefined CI files.
+
+---
+
+# Standard CI/CD Flow
+
+```text id="9u9mfj"
+Code Commit
+   ↓
+Build
+   ↓
+Test
+   ↓
+Security Checks
+   ↓
+Package Artifact
+   ↓
+Deploy Staging
+   ↓
+Approval
+   ↓
+Deploy Production
+```
+
+---
+
+# Interview Answer
+
+“A GitLab CI/CD pipeline template is the `.gitlab-ci.yml` configuration that defines stages, jobs, scripts, variables, artifacts, and deployment logic. While there is no single fixed template, common pipelines follow build, test, package, and deploy stages, with reusable templates supported via `include`.”
+
+---
+
+# Best Practice for SRE / DevOps
+
+Use templates with:
+
+* reusable jobs
+* environment-specific deploys
+* security scans
+* rollback jobs
+* approvals
+* caching
+* parallel tests
+
+---
+
+If you'd like, I can also give you a **production-grade GitLab CI/CD template for Java microservices + Kubernetes + rollback + approvals**, useful for interviews.
+
+
+
+#######################
+
+Standard CI/CD Flow
+Code Commit
+   ↓
+Build
+   ↓
+Test
+   ↓
+Security Checks
+   ↓
+Package Artifact
+   ↓
+Deploy Staging
+   ↓
+Approval
+   ↓
+Deploy Production
+
+
+
+
+
+For GitLab CI/CD (or any CI/CD platform), an SRE / DevOps team should design pipelines that are **fast, safe, reusable, scalable, and production-ready**.
+
+That’s why these best practices are recommended.
+
+---
+
+# 1. Reusable Jobs
+
+## Meaning
+
+Instead of repeating the same YAML logic in many projects, create shared templates.
+
+## Example
+
+```yaml id="6pf7nq"
+.build_template:
+  script:
+    - mvn clean package
+
+service-a-build:
+  extends: .build_template
+
+service-b-build:
+  extends: .build_template
+```
+
+## Why Important
+
+Without reusable jobs:
+
+* duplicate code
+* harder maintenance
+* inconsistent standards
+
+With reusable jobs:
+
+* one change updates many pipelines
+* standardization across teams
+
+## SRE Value
+
+Reliable pipelines at scale.
+
+---
+
+# 2. Environment-Specific Deploys
+
+## Meaning
+
+Different deployment logic for:
+
+* dev
+* staging
+* production
+
+Each environment may use different configs, credentials, approvals.
+
+## Example
+
+```yaml id="6w8ehw"
+deploy-dev:
+  environment: dev
+
+deploy-prod:
+  environment: production
+```
+
+## Why Important
+
+Production must be stricter than dev.
+
+Example:
+
+* Dev → auto deploy
+* Prod → manual approval
+
+## SRE Value
+
+Safer releases.
+
+---
+
+# 3. Security Scans
+
+## Meaning
+
+Automate security checks during CI.
+
+Examples:
+
+* SAST (code scan)
+* dependency vulnerability scan
+* container image scan
+* secrets scan
+
+## Example
+
+```yaml id="9u74g6"
+security-scan:
+  script:
+    - run-security-tool.sh
+```
+
+## Why Important
+
+Catch vulnerabilities before release.
+
+## SRE Value
+
+Shift-left security + reduced incidents.
+
+---
+
+# 4. Rollback Jobs
+
+## Meaning
+
+If deployment fails, quickly revert to previous stable version.
+
+## Example
+
+```yaml id="4g1f0y"
+rollback-prod:
+  script:
+    - kubectl rollout undo deployment/myapp
+```
+
+## Why Important
+
+Bad deploys happen.
+
+Without rollback:
+
+* longer outage
+* manual fixes
+* stress during incident
+
+## SRE Value
+
+Lower MTTR (Mean Time To Recovery)
+
+---
+
+# 5. Approvals
+
+## Meaning
+
+Require human approval before risky actions.
+
+Example:
+
+* Production deploy
+* Database migration
+* Infra deletion
+
+## Example
+
+```yaml id="w0thvq"
+deploy-prod:
+  when: manual
+```
+
+## Why Important
+
+Prevents accidental production changes.
+
+## SRE Value
+
+Operational control + auditability.
+
+---
+
+# 6. Caching
+
+## Meaning
+
+Reuse dependencies between runs.
+
+Examples:
+
+* Maven `.m2`
+* npm `node_modules`
+* pip cache
+
+## Example
+
+```yaml id="knqj7q"
+cache:
+  paths:
+    - .m2/repository
+```
+
+## Why Important
+
+Without cache:
+
+Every pipeline redownloads dependencies.
+
+With cache:
+
+* faster builds
+* less bandwidth
+* lower CI cost
+
+## SRE Value
+
+Efficient pipelines.
+
+---
+
+# 7. Parallel Tests
+
+## Meaning
+
+Run multiple test suites simultaneously.
+
+Instead of:
+
+```text id="fg6oqv"
+unit tests -> integration tests -> UI tests
+```
+
+Use:
+
+```text id="m68x52"
+unit tests
+integration tests
+UI tests
+(all at same time)
+```
+
+## Example
+
+```yaml id="r8a2hk"
+unit-test:
+  stage: test
+
+integration-test:
+  stage: test
+
+ui-test:
+  stage: test
+```
+
+## Why Important
+
+Reduces pipeline duration.
+
+## SRE Value
+
+Faster feedback loops.
+
+---
+
+# Real Production Pipeline Example
+
+```text id="n4of5v"
+Commit Code
+ ↓
+Build (reusable template)
+ ↓
+Security Scan
+ ↓
+Parallel Tests
+ ↓
+Deploy Dev (auto)
+ ↓
+Deploy Staging
+ ↓
+Approval Gate
+ ↓
+Deploy Prod
+ ↓
+Rollback if needed
+```
+
+---
+
+# Interview Answer (Senior SRE)
+
+“CI/CD pipelines should be engineered as production systems. We use reusable templates for consistency, environment-specific deployments for safety, security scans for risk reduction, rollback jobs for recovery, approvals for governance, caching for speed, and parallel tests for faster developer feedback.”
+
+---
+
+# Why This Matters to SRE
+
+SRE owns reliability. Poor pipelines cause:
+
+* failed deploys
+* slow recovery
+* long lead times
+* insecure releases
+* inconsistent operations
+
+Good pipelines improve both **velocity and reliability**.
+
+---
+
+# If You’re Interviewing for SRE Lead
+
+Strong phrase:
+
+> “A pipeline is part of the production control plane. It must be observable, secure, fast, and recoverable.”
+
+---
+
+If you'd like, I can also give you a **gold-standard GitLab CI/CD pipeline design from SRE perspective** (monitoring, rollback, canary, approvals, metrics).
